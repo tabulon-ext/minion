@@ -92,7 +92,7 @@ sub _list_jobs {
 sub _list_locks {
   my $locks = shift->app->minion->backend->list_locks(@_)->{locks};
   @$locks = map { Minion::_datetime($_) } @$locks;
-  print tablify [map { [@$_{qw(name expires)}] } @$locks];
+  print tablify [map { [@$_{qw(id name expires)}] } @$locks];
 }
 
 sub _list_workers {
@@ -128,7 +128,7 @@ Minion::Command::minion::job - Minion job command
     ./myapp.pl minion job -s
     ./myapp.pl minion job -f 10023
     ./myapp.pl minion job -q important -t foo -t bar -S inactive
-    ./myapp.pl minion job -Q 'host:localhost' -S inactive
+    ./myapp.pl minion job -q 'host:localhost' -S inactive
     ./myapp.pl minion job -e foo -a '[23, "bar"]'
     ./myapp.pl minion job -e foo -x 1 -P 10023 -P 10024 -p 5 -q important
     ./myapp.pl minion job -e 'foo' -n '{"test":123}'

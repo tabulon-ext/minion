@@ -494,6 +494,12 @@ These fields are currently available:
 
 Epoch time this lock will expire.
 
+=item id
+
+  id => 1
+
+Lock id.
+
 =item name
 
   name => 'foo'
@@ -800,6 +806,12 @@ Number of workers that are currently not processing a job.
   uptime => 1000
 
 Uptime in seconds.
+
+=item workers
+
+  workers => 200;
+
+Number of registered workers.
 
 =back
 

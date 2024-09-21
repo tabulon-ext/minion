@@ -13,7 +13,7 @@ use Minion;
 use Mojo::IOLoop;
 use Mojo::Promise;
 use Sys::Hostname qw(hostname);
-use Time::HiRes qw(usleep);
+use Time::HiRes   qw(usleep);
 
 # Isolate tests
 require Mojo::Pg;
@@ -29,9 +29,9 @@ subtest 'Nothing to repair' => sub {
 };
 
 subtest 'Migrate up and down' => sub {
-  is $minion->backend->pg->migrations->active,             23, 'active version is 23';
+  is $minion->backend->pg->migrations->active,             24, 'active version is 24';
   is $minion->backend->pg->migrations->migrate(0)->active, 0,  'active version is 0';
-  is $minion->backend->pg->migrations->migrate->active,    23, 'active version is 23';
+  is $minion->backend->pg->migrations->migrate->active,    24, 'active version is 24';
 };
 
 subtest 'Register and unregister' => sub {
@@ -390,6 +390,7 @@ subtest 'Stats' => sub {
   );
   $minion->add_task(fail => sub { die "Intentional failure!\n" });
   my $stats = $minion->stats;
+  is $stats->{workers},          0, 'no workers';
   is $stats->{active_workers},   0, 'no active workers';
   is $stats->{inactive_workers}, 0, 'no inactive workers';
   is $stats->{enqueued_jobs},    0, 'no enqueued jobs';
@@ -401,6 +402,7 @@ subtest 'Stats' => sub {
   is $stats->{active_locks},     0, 'no active locks';
   ok $stats->{uptime}, 'has uptime';
   my $worker = $minion->worker->register;
+  is $minion->stats->{workers},          1, 'one worker';
   is $minion->stats->{inactive_workers}, 1, 'one inactive worker';
   $minion->enqueue('fail');
   is $minion->stats->{enqueued_jobs}, 1, 'one enqueued job';
@@ -409,6 +411,7 @@ subtest 'Stats' => sub {
   is $minion->stats->{inactive_jobs}, 2, 'two inactive jobs';
   ok my $job = $worker->dequeue(0), 'job dequeued';
   $stats = $minion->stats;
+  is $stats->{workers},        1, 'one worker';
   is $stats->{active_workers}, 1, 'one active worker';
   is $stats->{active_jobs},    1, 'one active job';
   is $stats->{inactive_jobs},  1, 'one inactive job';
@@ -429,6 +432,7 @@ subtest 'Stats' => sub {
   ok $worker->dequeue(0)->finish(['works']), 'job finished';
   $worker->unregister;
   $stats = $minion->stats;
+  is $stats->{workers},          0, 'no workers';
   is $stats->{active_workers},   0, 'no active workers';
   is $stats->{inactive_workers}, 0, 'no inactive workers';
   is $stats->{active_jobs},      0, 'no active jobs';
@@ -1112,9 +1116,9 @@ subtest 'Job dependencies' => sub {
   is_deeply $job->info->{children}, [],          'right children';
   is_deeply $job->info->{parents},  [$id, $id2], 'right parents';
   is $minion->stats->{finished_jobs},         2, 'two finished jobs';
-  is $minion->repair->stats->{finished_jobs}, 2, 'two finished jobs';
+  is $minion->repair->stats->{finished_jobs}, 2, 'still two finished jobs';
   ok $job->finish, 'job finished';
-  is $minion->stats->{finished_jobs},                               3, 'three finished jobs';
+  is $minion->stats->{finished_jobs},                               3, 'three finished job';
   is $minion->repair->remove_after(172800)->stats->{finished_jobs}, 0, 'no finished jobs';
   $id = $minion->enqueue(test => [] => {parents => [-1]});
   ok $job = $worker->dequeue(0), 'job dequeued';

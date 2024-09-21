@@ -12,7 +12,7 @@ use Mojo::Loader qw(load_class);
 use Mojo::Promise;
 use Mojo::Server;
 use Mojo::Util qw(scope_guard steady_time);
-use YAML::XS qw(Dump);
+use YAML::XS   qw(Dump);
 
 has app => sub { $_[0]{app_ref} = Mojo::Server->new->build_app('Mojo::HelloWorld') }, weak => 1;
 has 'backend';
@@ -21,7 +21,7 @@ has missing_after                  => 1800;
 has [qw(remove_after stuck_after)] => 172800;
 has tasks                          => sub { {} };
 
-our $VERSION = '10.24';
+our $VERSION = '10.32';
 
 sub add_task {
   my ($self, $name, $task) = @_;
@@ -938,6 +938,12 @@ Number of workers that are currently not processing a job.
 
 Uptime in seconds.
 
+=item workers
+
+  workers => 200;
+
+Number of registered workers.
+
 =back
 
 =head2 unlock
@@ -1109,6 +1115,12 @@ Licensed under the CC-SA License, Version 4.0 L<http://creativecommons.org/licen
 
 Licensed under the MIT License, L<http://creativecommons.org/licenses/MIT>.
 
+=head2 jQuery
+
+  Copyright (C) jQuery Foundation.
+
+Licensed under the MIT License, L<http://creativecommons.org/licenses/MIT>.
+
 =head2 D3.js
 
   Copyright (C) 2010-2016, Michael Bostock.
@@ -1154,19 +1166,25 @@ Brian Medley
 
 Franz Skale
 
+Henrik Andersen
+
 Hubert "depesz" Lubaczewski
 
 Joel Berger
 
 Paul Williams
 
+Russell Shingleton
+
 Stefan Adams
+
+Stuart Skelton
 
 =back
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2022, Sebastian Riedel and others.
+Copyright (C) 2014-2024, Sebastian Riedel and others.
 
 This program is free software, you can redistribute it and/or modify it under the terms of the Artistic License version
 2.0.

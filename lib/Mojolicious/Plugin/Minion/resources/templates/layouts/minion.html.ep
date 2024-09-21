@@ -2,7 +2,7 @@
   <head>
     <title><%= title() || 'Minion' %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    %= javascript '/mojo/jquery/jquery.js'
+    %= javascript '/minion/jquery/jquery.js'
     %= javascript '/minion/bootstrap/bootstrap.js'
     %= stylesheet '/minion/bootstrap/bootstrap.css'
     %= javascript '/minion/moment/moment.js'
@@ -141,12 +141,12 @@
               <b>Free</b> and <b>Open Source</b>.
             </div>
             <div class="col-sm align-self-center text-center mojo-copy">
-                <i class="far fa-copyright"></i> 2014-2021 Sebastian Riedel and the
+                <i class="far fa-copyright"></i> 2014-2024 Sebastian Riedel and the
                 <a href="https://docs.mojolicious.org/Minion#AUTHORS">Minion contributors</a>.
             </div>
             <div class="col-sm align-self-center text-center mojo-social">
               <a alt="GitHub" href="https://github.com/mojolicious/minion"><i class="fab fa-github-alt"></i></a>
-              <a alt="Twitter" href="https://twitter.com/mojolicious_org"><i class="fab fa-twitter"></i></a>
+              <a alt="Mastodon" href="https://fosstodon.org/@mojolicious"><i class="fab fa-mastodon"></i></a>
               <a alt="LinkedIn" href="https://www.linkedin.com/groups/8963713/"><i class="fab fa-linkedin"></i></a>
             </div>
           </div>

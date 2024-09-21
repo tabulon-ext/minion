@@ -1,7 +1,7 @@
 package Minion::Backend::Pg;
 use Mojo::Base 'Minion::Backend';
 
-use Carp qw(croak);
+use Carp       qw(croak);
 use Mojo::File qw(path);
 use Mojo::IOLoop;
 use Mojo::Pg 4.0;
@@ -96,7 +96,7 @@ sub list_locks {
   my ($self, $offset, $limit, $options) = @_;
 
   my $locks = $self->pg->db->query(
-    'SELECT name, EXTRACT(EPOCH FROM expires) AS expires, COUNT(*) OVER() AS total FROM minion_locks
+    'SELECT id, name, EXTRACT(EPOCH FROM expires) AS expires, COUNT(*) OVER() AS total FROM minion_locks
      WHERE expires > NOW() AND (name = ANY ($1) OR $1 IS NULL)
      ORDER BY id DESC LIMIT $2 OFFSET $3', $options->{names}, $limit, $offset
   )->hashes->to_array;
@@ -178,16 +178,17 @@ sub repair {
   my $minion = $self->minion;
   $db->query("DELETE FROM minion_workers WHERE notified < NOW() - INTERVAL '1 second' * ?", $minion->missing_after);
 
-  # Old jobs with no unresolved dependencies and expired jobs
+  # Old jobs with no unresolved dependencies
   $db->query(
-    "DELETE FROM minion_jobs WHERE id IN (
-       SELECT j.id FROM minion_jobs AS j LEFT JOIN minion_jobs AS children
-         ON children.state != 'finished' AND ARRAY_LENGTH(children.parents, 1) > 0 AND j.id = ANY(children.parents)
-       WHERE j.state = 'finished' AND j.finished <= NOW() - INTERVAL '1 second' * ? AND children.id IS NULL
-       UNION ALL
-       SELECT id FROM minion_jobs WHERE state = 'inactive' AND expires <= NOW()
+    "DELETE FROM minion_jobs
+     WHERE id IN (
+      SELECT id FROM minion_jobs WHERE state = 'finished' AND finished <= NOW() - INTERVAL '1 second' * ?
+      EXCEPT SELECT unnest(parents) AS id FROM minion_jobs WHERE state != 'finished'
     )", $minion->remove_after
   );
+
+  # Expired jobs
+  $db->query("DELETE FROM minion_jobs WHERE state = 'inactive' AND expires <= NOW()");
 
   # Jobs with missing worker (can be retried)
   $db->query(
@@ -228,18 +229,19 @@ sub stats {
   my $self = shift;
 
   my $stats = $self->pg->db->query(
-    "SELECT COUNT(*) FILTER (WHERE state = 'inactive' AND (expires IS NULL OR expires > NOW())) AS inactive_jobs,
-       COUNT(*) FILTER (WHERE state = 'active') AS active_jobs, COUNT(*) FILTER (WHERE state = 'failed') AS failed_jobs,
-       COUNT(*) FILTER (WHERE state = 'finished') AS finished_jobs,
-       COUNT(*) FILTER (WHERE state = 'inactive' AND delayed > NOW()) AS delayed_jobs,
+    "SELECT
+       (SELECT COUNT(*) FROM minion_jobs WHERE state = 'inactive' AND (expires IS NULL OR expires > NOW())) AS inactive_jobs,
+       (SELECT COUNT(*) FROM minion_jobs WHERE state = 'active') AS active_jobs,
+       (SELECT COUNT(*) FROM minion_jobs WHERE state = 'failed') AS failed_jobs,
+       (SELECT COUNT(*) FROM minion_jobs WHERE state = 'finished') AS finished_jobs,
+       (SELECT COUNT(*) FROM minion_jobs WHERE state = 'inactive' AND delayed > NOW()) AS delayed_jobs,
        (SELECT COUNT(*) FROM minion_locks WHERE expires > NOW()) AS active_locks,
-       COUNT(DISTINCT worker) FILTER (WHERE state = 'active') AS active_workers,
+       (SELECT COUNT(DISTINCT worker) FROM minion_jobs mj WHERE state = 'active') AS active_workers,
        (SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM minion_jobs_id_seq) AS enqueued_jobs,
-       (SELECT COUNT(*) FROM minion_workers) AS inactive_workers,
-       EXTRACT(EPOCH FROM NOW() - PG_POSTMASTER_START_TIME()) AS uptime
-     FROM minion_jobs"
+       (SELECT COUNT(*) FROM minion_workers) AS workers,
+       EXTRACT(EPOCH FROM NOW() - PG_POSTMASTER_START_TIME()) AS uptime"
   )->hash;
-  $stats->{inactive_workers} -= $stats->{active_workers};
+  $stats->{inactive_workers} = $stats->{workers} - $stats->{active_workers};
 
   return $stats;
 }
@@ -731,6 +733,12 @@ These fields are currently available:
 
 Epoch time this lock will expire.
 
+=item id
+
+  id => 1
+
+Lock id.
+
 =item name
 
   name => 'foo'
@@ -1040,6 +1048,12 @@ Number of workers that are currently not processing a job.
   uptime => 1000
 
 Uptime in seconds.
+
+=item workers
+
+  workers => 200;
+
+Number of registered workers.
 
 =back
 

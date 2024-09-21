@@ -1,5 +1,32 @@
 
-10.24  2022-01-21
+10.32 2024-09-22
+
+10.31 2024-09-21
+  - Restore old repair behavior for job dependencies without performance loss. (HEM42)
+
+10.30 2024-06-05
+  - Improved stats performance in Minion::Backend::Pg by an order of magnitude. (rshingleton)
+
+10.29  2024-03-19
+  - Added id field to list_locks method in Minion::Backend::Pg. (stuartskelton)
+  - Improved admin UI with lock id information. (stuartskelton)
+  - Fixed jQuery dependency.
+
+10.28  2023-11-27
+  - Improved repair and history performance in most cases.
+
+10.27  2023-11-20
+  - Improved repair performance in cases where there are a lot of finished jobs with dependencies.
+
+10.26  2023-11-10
+  - Added type information to worker status.
+  - Improved workers by calling srand() after starting a new job process.
+
+10.25  2022-06-24
+  - Added workers field to stats methods in Minion and Minion::Backend::Pg.
+
+10.24  2022-04-28
+  - Improved Mojolicious::Plugin::Minion::Admin to log whenever a job gets removed.
 
 10.23  2022-01-20
   - Improved repair performance in Minion::Backend::Pg. (andrii-suse, ilmari, kraih)

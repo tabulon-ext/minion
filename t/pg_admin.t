@@ -56,10 +56,14 @@ subtest 'Workers' => sub {
 
 subtest 'Locks' => sub {
   $t->app->minion->lock('foo', 3600);
+  $t->get_ok('/minion/stats')->status_is(200)->json_is('/active_locks' => 1);
   $t->app->minion->lock('bar', 3600);
+  $t->get_ok('/minion/stats')->status_is(200)->json_is('/active_locks' => 2);
   $t->ua->max_redirects(5);
-  $t->get_ok('/minion/locks')->status_is(200)->text_like('tbody td a' => qr/bar/);
-  $t->get_ok('/minion/locks?name=foo')->status_is(200)->text_like('tbody td a' => qr/foo/);
+  $t->get_ok('/minion/locks')->status_is(200)->text_like('tbody td a'       => qr/bar/);
+  $t->get_ok('/minion/locks')->status_is(200)->text_like('tbody td#lock_id' => qr/2/);
+  $t->get_ok('/minion/locks?name=foo')->status_is(200)->text_like('tbody td a'       => qr/foo/);
+  $t->get_ok('/minion/locks?name=foo')->status_is(200)->text_like('tbody td#lock_id' => qr/1/);
   $t->post_ok('/minion/locks?_method=DELETE&name=bar')->status_is(200)->text_like('tbody td a' => qr/foo/)
     ->text_like('.alert-success', qr/All selected named locks released/);
   is $t->tx->previous->res->code, 302, 'right status';
@@ -81,8 +85,17 @@ subtest 'Manage jobs' => sub {
     ->text_like('.alert-info', qr/Trying to stop all selected jobs/);
   is $t->tx->previous->res->code, 302, 'right status';
   like $t->tx->previous->res->headers->location, qr/id=$finished/, 'right "Location" value';
+
+  my $subscribers = $t->app->log->subscribers('message');
+  my $level       = $t->app->log->level;
+  $t->app->log->unsubscribe('message');
+  my $log = '';
+  my $cb  = $t->app->log->level('debug')->on(message => sub { $log .= pop });
   $t->post_ok('/minion/jobs?_method=PATCH' => form => {id => $finished, do => 'remove'})
     ->text_like('.alert-success', qr/All selected jobs removed/);
+  $t->app->log->level($level)->unsubscribe(message => $cb);
+  $t->app->log->on(message => $_) for @$subscribers;
+  like $log, qr/Jobs removed by user ".+": $finished/, 'right log message';
   is $t->tx->previous->res->code, 302, 'right status';
   like $t->tx->previous->res->headers->location, qr/id=$finished/, 'right "Location" value';
   is app->minion->job($finished), undef, 'job has been removed';
